@@ -1,0 +1,48 @@
+name: Update cyberbattle data
+
+# Runs every 2 hours (and on demand). It OVERWRITES the gist file with the
+# latest snapshot from the API — it never appends.
+on:
+  schedule:
+    - cron: '0 */2 * * *'      # every 2 hours
+  workflow_dispatch:
+    inputs:
+      battle_id:
+        description: 'Battle ID to fetch'
+        required: false
+        default: '55'
+
+concurrency:
+  group: update-data
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch latest risks from Standoff API
+        env:
+          STANDOFF_ACCESS_TOKEN: ${{ secrets.STANDOFF_ACCESS_TOKEN }}
+          STANDOFF_DEVICE_UUID: ${{ secrets.STANDOFF_DEVICE_UUID }}
+          STANDOFF_COOKIE: ${{ secrets.STANDOFF_COOKIE }}
+          BATTLE_ID: ${{ github.event.inputs.battle_id || vars.BATTLE_ID || '55' }}
+          OUT: battle.json
+        run: |
+          chmod +x scripts/fetch.sh
+          scripts/fetch.sh
+
+      - name: Update gist (overwrite, not append)
+        env:
+          GH_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          BATTLE_ID: ${{ github.event.inputs.battle_id || vars.BATTLE_ID || '55' }}
+        run: |
+          FILENAME="battle-${BATTLE_ID}.json"
+          # PATCH replaces the whole file content for that filename → an update.
+          jq -n --arg name "$FILENAME" --rawfile c battle.json \
+            '{files: {($name): {content: $c}}}' \
+            | gh api -X PATCH "/gists/${GIST_ID}" --input - --silent
+          echo "✓ Updated gist ${GIST_ID} → ${FILENAME}"

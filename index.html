@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyberbattle Risks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">~/<span>cyberbattle</span>.kac0</div>
+    <div class="spacer"></div>
+    <button id="srcBtn" class="btn ghost" title="Set data source (gist raw URL)">⚙ Source</button>
+    <button id="reloadBtn" class="btn ghost" title="Reload data">⟳ Reload</button>
+  </header>
+
+  <section class="hero">
+    <h1>Business Risks <span id="battleTag" class="tag"></span></h1>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section class="controls">
+    <div class="search-wrap">
+      <input id="search" type="search" placeholder="Search name, description, technical task, industry…" autocomplete="off">
+    </div>
+    <div class="filters">
+      <select id="industry" class="sel"><option value="">All industries</option></select>
+      <select id="status" class="sel">
+        <option value="">Any status</option>
+        <option value="none">Not submitted</option>
+        <option value="in_progress">In progress</option>
+        <option value="accepted">Accepted</option>
+        <option value="rejected">Rejected</option>
+      </select>
+      <select id="sort" class="sel">
+        <option value="cost-desc">Cost ↓ high→low</option>
+        <option value="cost-asc">Cost ↑ low→high</option>
+        <option value="name-asc">Name A→Z</option>
+        <option value="industry">Industry</option>
+      </select>
+      <div class="chips" id="diffChips">
+        <button class="chip" data-diff="low">low</button>
+        <button class="chip" data-diff="medium">medium</button>
+        <button class="chip" data-diff="high">high</button>
+        <button class="chip" data-diff="maximal">maximal</button>
+      </div>
+    </div>
+  </section>
+
+  <main id="grid" class="grid"></main>
+  <div id="empty" class="empty" hidden>No risks match your filters.</div>
+
+  <footer class="foot">
+    <span id="srcLabel"></span> · Standoff 365 cyberbattle viewer
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
