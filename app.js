@@ -2,8 +2,11 @@
 
 // Data source priority: ?src= → saved gist URL (localStorage) → bundled data.json.
 // Point this at your gist's RAW url (the one the GitHub Action keeps updated).
-const DEFAULT_GIST = 'https://gist.githubusercontent.com/marcoalfans/772b4fa9abaabbf4d95f7091f200b1da/raw/battle-55.json';
-const FALLBACK = './data.json';
+// Same-origin snapshot kept fresh by the GitHub Action — no CORS, served by the
+// Pages CDN. (The gist raw URL is cross-origin and GitHub sends no CORS header,
+// so fetching it from the browser is blocked — we don't use it as the default.)
+const PRIMARY = './battle-55.json';
+const FALLBACK = './data.json';   // bundled seed, also same-origin
 const LS_KEY = 'cb_src';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -15,14 +18,23 @@ const state = { q: '', industry: '', status: '', sort: 'cost-desc', diffs: new S
 
 function sourceUrl() {
   const qp = new URLSearchParams(location.search).get('src');
-  return qp || localStorage.getItem(LS_KEY) || DEFAULT_GIST || FALLBACK;
+  return qp || localStorage.getItem(LS_KEY) || PRIMARY;
 }
 
 async function fetchJson(url) {
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const json = await res.json();
-  return Array.isArray(json) ? json : (json.risks || []);
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8000);   // never hang the UI
+  try {
+    const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    return Array.isArray(json) ? json : (json.risks || []);
+  } finally { clearTimeout(t); }
+}
+
+function setSrcLabel(text) {
+  const el = $('#srcLabel');           // optional element — don't crash if removed
+  if (el) el.textContent = 'source: ' + text;
 }
 
 async function load() {
@@ -33,13 +45,13 @@ async function load() {
     RISKS = await fetchJson(primary);
   } catch (e) {
     // fall back to the bundled snapshot so the page is never empty
-    try { RISKS = await fetchJson(FALLBACK); used = FALLBACK + ' (offline fallback)'; }
+    try { RISKS = await fetchJson(FALLBACK); used = FALLBACK + ' (fallback)'; }
     catch (e2) {
-      $('#grid').innerHTML = `<div class="empty">Failed to load data from <code>${esc(primary)}</code><br>${esc(e.message)}<br><br>Use ⚙ Source to set a reachable gist raw URL.</div>`;
+      $('#grid').innerHTML = `<div class="empty">Failed to load data from <code>${esc(primary)}</code><br>${esc(e.message)}<br><br>Use ⚙ Source to set another URL.</div>`;
       RISKS = []; return;
     }
   }
-  $('#srcLabel').textContent = 'source: ' + used;
+  setSrcLabel(used);
   buildIndustries();
   render();
 }

@@ -16,6 +16,9 @@ concurrency:
   group: update-data
   cancel-in-progress: true
 
+permissions:
+  contents: write          # allow committing the snapshot back to the repo
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -33,6 +36,21 @@ jobs:
         run: |
           chmod +x scripts/fetch.sh
           scripts/fetch.sh
+
+      - name: Commit snapshot to repo (same-origin source for the viewer — no CORS)
+        env:
+          BATTLE_ID: ${{ github.event.inputs.battle_id || vars.BATTLE_ID || '55' }}
+        run: |
+          cp battle.json "battle-${BATTLE_ID}.json"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "battle-${BATTLE_ID}.json"
+          if git diff --cached --quiet; then
+            echo "no change"
+          else
+            git commit -m "data: refresh battle ${BATTLE_ID}"
+            git push
+          fi
 
       - name: Update gist (overwrite, not append)
         env:
